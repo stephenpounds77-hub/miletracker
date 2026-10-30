@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b6e4f"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Miles"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.svg">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+<title>Mile Tracker</title>
+<style>
+:root{--bg:#f6f7f8;--fg:#111;--card:#fff;--mut:#666;--acc:#0b6e4f;--red:#c0392b;--bd:#ddd}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--card:#1d1f21;--mut:#9a9a9a;--acc:#2fbf8a;--red:#e5534b;--bd:#333}}
+*{box-sizing:border-box}body{margin:0;font:17px/1.4 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 12px)}
+h1{font-size:22px;margin:12px 0}h2{font-size:18px;margin:0 0 8px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
+button,.btn{font:inherit;border:0;border-radius:12px;padding:14px 16px;min-height:48px;background:var(--acc);color:#fff;cursor:pointer}
+button.sec{background:transparent;color:var(--acc);border:2px solid var(--acc)}button.del{background:var(--red)}
+#big{width:100%;font-size:28px;font-weight:700;min-height:90px}#big.on{background:var(--red)}
+.live{display:flex;justify-content:space-around;text-align:center;margin:12px 0}.live b{font-size:40px;display:block}
+input,select,textarea{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);min-height:48px}
+label{display:block;margin:8px 0 4px;color:var(--mut);font-size:15px}.row{display:flex;gap:8px}.row>*{flex:1}
+.seg{display:flex;border:2px solid var(--acc);border-radius:12px;overflow:hidden}.seg button{flex:1;border-radius:0;background:transparent;color:var(--acc)}.seg button.act{background:var(--acc);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px 4px;text-align:right;border-bottom:1px solid var(--bd)}td:first-child,th:first-child{text-align:left}
+.trip{border-bottom:1px solid var(--bd);padding:10px 0}.trip .t{display:flex;justify-content:space-between;font-weight:600}.mut{color:var(--mut);font-size:14px}
+.note{background:#f39c1222;border-left:4px solid #f39c12;padding:8px 10px;border-radius:8px;font-size:14px}footer{text-align:center;color:var(--mut);font-size:14px;margin:24px 0}
+dialog{border:0;border-radius:16px;background:var(--card);color:var(--fg);width:min(94vw,480px)}dialog::backdrop{background:#0008}
+</style></head><body>
+<h1>Mile Tracker</h1>
+<div class="card">
+ <button id="big">Start trip</button>
+ <div class="live"><div><b id="lmi">0.00</b>miles</div><div><b id="ltime">0:00</b>elapsed</div></div>
+ <div class="mut" id="gps">GPS idle</div>
+ <div class="note">Keep the screen ON while driving. Browsers can't track GPS when the screen is locked or the app is in the background. <span id="wl"></span></div>
+</div>
+<div class="card"><h2>Totals</h2><div id="totals"></div>
+ <label>IRS mileage rate ($ per mile, optional — enter current rate yourself)</label>
+ <input id="rate" type="number" inputmode="decimal" step="0.001" min="0" placeholder="e.g. enter the current rate">
+</div>
+<div class="card"><h2>Add trip manually</h2>
+ <div class="seg" id="mmode"><button data-m="miles" class="act">Miles</button><button data-m="odo">Odometer</button></div>
+ <label>Date</label><input id="mdate" type="date">
+ <div class="row"><div><label>Start time</label><input id="mstart" type="time"></div><div><label>End time</label><input id="mend" type="time"></div></div>
+ <div id="mmiles"><label>Miles</label><input id="mmi" type="number" inputmode="decimal" step="0.1" min="0"></div>
+ <div id="modo" hidden class="row"><div><label>Odometer start</label><input id="ostart" type="number" inputmode="decimal" step="0.1"></div><div><label>Odometer end</label><input id="oend" type="number" inputmode="decimal" step="0.1"></div></div>
+ <label>Type</label><div class="seg" id="mtype"><button data-t="Business" class="act">Business</button><button data-t="Personal">Personal</button></div>
+ <label>Note</label><input id="mnote" placeholder="Purpose, client, etc.">
+ <p><button id="madd" style="width:100%">Add trip</button></p>
+</div>
+<div class="card"><h2>Trips</h2><div id="trips"></div></div>
+<div class="card"><h2>Backup</h2>
+ <div class="row"><button id="exp">Export CSV</button><button class="sec" id="impb">Import CSV</button></div>
+ <input type="file" id="imp" accept=".csv,text/csv" hidden>
+ <p class="mut">Export saves a file on this phone. Import merges trips from a CSV (duplicates skipped).</p>
+</div>
+<dialog id="dlg"><form method="dialog" id="ef"><h2>Edit trip</h2>
+ <label>Date</label><input id="edate" type="date" required>
+ <div class="row"><div><label>Start</label><input id="estart" type="time"></div><div><label>End</label><input id="eend" type="time"></div></div>
+ <label>Miles</label><input id="emi" type="number" step="0.01" min="0" inputmode="decimal" required>
+ <label>Type</label><select id="etype"><option>Business</option><option>Personal</option></select>
+ <label>Note</label><input id="enote">
+ <p class="row"><button value="cancel" class="sec" formnovalidate>Cancel</button><button value="save" id="esave">Save</button></p></form></dialog>
+<footer>🔒 Private: all data stays on this phone (stored locally in your browser). No accounts, no servers, no analytics, no maps — this app makes zero network requests. Nothing leaves your phone unless you tap Export.</footer>
+<script>
+/*CORE-START*/
+const R_MI=3958.7613;
+function haversineMi(a,b){const r=x=>x*Math.PI/180;const dLat=r(b.lat-a.lat),dLon=r(b.lon-a.lon);
+ const h=Math.sin(dLat/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLon/2)**2;return 2*R_MI*Math.asin(Math.min(1,Math.sqrt(h)));}
+// Filter: drop fixes with accuracy >50 m, implausible speed (>100 mph), and jitter (move smaller than max(15 m, combined accuracy of both fixes); anchor is kept so slow real movement still accumulates).
+function makeTracker(o={}){const MAXACC=o.maxAcc??50,MAXMPH=o.maxMph??100,MINM=o.minMeters??15;
+ let last=null,miles=0,points=0,rejected=0;
+ return{add(p){ // p={lat,lon,acc(m),t(ms)}
+  if(p.acc==null||p.acc>MAXACC){rejected++;return false;}
+  if(!last){last=p;points++;return true;}
+  const d=haversineMi(last,p),m=d*1609.344,hrs=(p.t-last.t)/3600000;
+  if(m<Math.max(MINM,p.acc+last.acc)){return false;} // stationary jitter: keep anchor
+  if(hrs<=0||d/hrs>MAXMPH){rejected++;return false;}
+  miles+=d;last=p;points++;return true;},
+  get miles(){return miles},get points(){return points},get rejected(){return rejected}};}
+function csvEsc(v){v=String(v??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function toCSV(trips){return 'date,start,end,miles,type,note\r\n'+trips.map(t=>[t.date,t.start,t.end,(+t.miles).toFixed(2),t.type,t.note].map(csvEsc).join(',')).join('\r\n')+'\r\n';}
+function parseCSV(s){const rows=[];let row=[],f='',q=false;for(let i=0;i<s.length;i++){const c=s[i];
+ if(q){if(c=='"'){if(s[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+ else if(c=='"')q=true;else if(c==','){row.push(f);f=''}else if(c=='\n'||c=='\r'){if(c=='\r'&&s[i+1]=='\n')i++;row.push(f);f='';if(row.some(x=>x!==''))rows.push(row);row=[]}else f+=c}
+ row.push(f);if(row.some(x=>x!==''))rows.push(row);return rows;}
+if(typeof module!=='undefined')module.exports={haversineMi,makeTracker,toCSV,parseCSV};
+/*CORE-END*/
+if(typeof document!=='undefined'){
+const $=id=>document.getElementById(id),K='miletracker.trips.v1',KR='miletracker.rate';
+let trips=JSON.parse(localStorage.getItem(K)||'[]');
+const save=()=>{localStorage.setItem(K,JSON.stringify(trips));render()};
+const pad=n=>String(n).padStart(2,'0'),ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+$('rate').value=localStorage.getItem(KR)||'';$('rate').oninput=()=>{localStorage.setItem(KR,$('rate').value);render()};
+function render(){const now=new Date(),td=ymd(now),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7));const wk=ymd(mon),mo=td.slice(0,7),yr=td.slice(0,4);
+ const P={Today:t=>t.date===td,'This week':t=>t.date>=wk&&t.date<=td,'This month':t=>t.date.startsWith(mo),'This year':t=>t.date.startsWith(yr)};
+ const rate=parseFloat($('rate').value);let h='<table><tr><th></th><th>Business</th><th>Personal</th><th>Total</th>'+(rate>0?'<th>Est. deduction</th>':'')+'</tr>';
+ for(const[k,f]of Object.entries(P)){const s=trips.filter(f);const b=s.filter(t=>t.type==='Business').reduce((a,t)=>a+ +t.miles,0),p=s.filter(t=>t.type!=='Business').reduce((a,t)=>a+ +t.miles,0);
+  h+=`<tr><td>${k}</td><td>${b.toFixed(1)}</td><td>${p.toFixed(1)}</td><td>${(b+p).toFixed(1)}</td>${rate>0?'<td>$'+(b*rate).toFixed(2)+'</td>':''}</tr>`}
+ $('totals').innerHTML=h+'</table>'+(rate>0?'<p class="mut">Estimate only (business miles × your rate). Not tax advice.</p>':'');
+ const list=[...trips].sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start));
+ $('trips').innerHTML=list.length?'':'<p class="mut">No trips yet.</p>';
+ for(const t of list){const d=document.createElement('div');d.className='trip';
+  d.innerHTML=`<div class="t"><span></span><span>${(+t.miles).toFixed(2)} mi</span></div><div class="mut"></div><div class="row" style="margin-top:6px"><button class="sec">Edit</button><button class="del">Delete</button></div>`;
+  d.querySelector('.t span').textContent=t.date+'  '+(t.start||'')+(t.end?'–'+t.end:'');
+  d.querySelector('.mut').textContent=t.type+(t.note?' · '+t.note:'')+(t.points?' · '+t.points+' GPS pts':'');
+  const[eb,db]=d.querySelectorAll('button');eb.onclick=()=>edit(t);db.onclick=()=>{if(confirm('Delete this trip?')){trips=trips.filter(x=>x.id!==t.id);save()}};$('trips').appendChild(d)}}
+function edit(t){$('edate').value=t.date;$('estart').value=t.start;$('eend').value=t.end;$('emi').value=(+t.miles).toFixed(2);$('etype').value=t.type;$('enote').value=t.note||'';
+ $('dlg').onclose=()=>{if($('dlg').returnValue==='save'){Object.assign(t,{date:$('edate').value,start:$('estart').value,end:$('eend').value,miles:+$('emi').value||0,type:$('etype').value,note:$('enote').value});save()}};$('dlg').showModal()}
+function seg(id,attr){$(id).querySelectorAll('button').forEach(b=>b.onclick=e=>{e.preventDefault();$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('act',x===b));$(id).dataset.v=b.dataset[attr];$(id).onchange&&$(id).onchange()});$(id).dataset.v=$(id).querySelector('.act').dataset[attr]}
+seg('mmode','m');seg('mtype','t');$('mmode').onchange=()=>{const o=$('mmode').dataset.v==='odo';$('modo').hidden=!o;$('mmiles').hidden=o};
+$('mdate').value=ymd(new Date());
+$('madd').onclick=()=>{let mi;if($('mmode').dataset.v==='odo'){mi=parseFloat($('oend').value)-parseFloat($('ostart').value)}else mi=parseFloat($('mmi').value);
+ if(!(mi>0)){alert('Enter a positive distance (odometer end must exceed start).');return}if(!$('mdate').value){alert('Pick a date');return}
+ const n=$('mnote').value+($('mmode').dataset.v==='odo'?(($('mnote').value?' ':'')+`(odo ${$('ostart').value}→${$('oend').value})`):'');
+ trips.push({id:uid(),date:$('mdate').value,start:$('mstart').value,end:$('mend').value,miles:Math.round(mi*100)/100,type:$('mtype').dataset.v,note:n});
+ ['mmi','ostart','oend','mnote','mstart','mend'].forEach(i=>$(i).value='');save()};
+// Live tracking
+let watch=null,tr=null,t0=0,tick=null,lock=null;
+async function wake(){try{if('wakeLock' in navigator){lock=await navigator.wakeLock.request('screen');$('wl').textContent='Screen wake lock: ON.'}else $('wl').textContent='This browser cannot keep the screen awake automatically — set auto-lock to Never while driving.'}catch(e){$('wl').textContent='Wake lock unavailable — keep the screen on manually.'}}
+document.addEventListener('visibilitychange',()=>{if(watch!==null&&document.visibilityState==='visible')wake()});
+$('big').onclick=()=>watch===null?start():stop();
+function start(){if(!('geolocation' in navigator)){alert('Geolocation not available');return}
+ tr=makeTracker();t0=Date.now();$('big').textContent='Stop trip';$('big').classList.add('on');wake();
+ watch=navigator.geolocation.watchPosition(p=>{const ok=tr.add({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,t:p.timestamp||Date.now()});
+  $('gps').textContent=`GPS ±${Math.round(p.coords.accuracy)} m${p.coords.accuracy>50?' (too inaccurate, ignored)':''} · ${tr.points} pts used`;$('lmi').textContent=tr.miles.toFixed(2)},
+  e=>{$('gps').textContent='GPS error: '+e.message+(e.code===1?' — allow location for this page in settings.':'')},{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+ tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$('ltime').textContent=(s>=3600?Math.floor(s/3600)+':'+pad(Math.floor(s/60)%60):Math.floor(s/60))+':'+pad(s%60)},1000)}
+function stop(){navigator.geolocation.clearWatch(watch);watch=null;clearInterval(tick);if(lock){lock.release().catch(()=>{});lock=null}$('wl').textContent='';
+ $('big').textContent='Start trip';$('big').classList.remove('on');const s=new Date(t0),e=new Date();
+ const t={id:uid(),date:ymd(s),start:hm(s),end:hm(e),miles:Math.round(tr.miles*100)/100,type:'Business',note:'',points:tr.points};
+ trips.push(t);save();$('gps').textContent='Trip saved. Set type/note below.';edit(t)}
+// Export / import
+$('exp').onclick=()=>{const b=new Blob([toCSV(trips)],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mileage-'+ymd(new Date())+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)};
+$('impb').onclick=()=>$('imp').click();
+$('imp').onchange=async()=>{const f=$('imp').files[0];if(!f)return;const rows=parseCSV(await f.text());if(rows.length&&rows[0][0].toLowerCase()==='date')rows.shift();
+ const key=t=>[t.date,t.start,t.end,(+t.miles).toFixed(2)].join('|'),have=new Set(trips.map(key));let n=0;
+ for(const r of rows){const t={id:uid(),date:r[0],start:r[1]||'',end:r[2]||'',miles:parseFloat(r[3])||0,type:r[4]==='Personal'?'Personal':'Business',note:r[5]||''};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(t.date)||have.has(key(t)))continue;have.add(key(t));trips.push(t);n++}
+ save();alert(n+' trip(s) imported.');$('imp').value=''};
+render();
+if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script></body></html>
