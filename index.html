@@ -9,129 +9,206 @@
 @media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--card:#1d1f21;--mut:#9a9a9a;--acc:#2fbf8a;--red:#e5534b;--bd:#333}}
 *{box-sizing:border-box}body{margin:0;font:17px/1.4 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 12px)}
 h1{font-size:22px;margin:12px 0}h2{font-size:18px;margin:0 0 8px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
-button,.btn{font:inherit;border:0;border-radius:12px;padding:14px 16px;min-height:48px;background:var(--acc);color:#fff;cursor:pointer}
+button{font:inherit;border:0;border-radius:12px;padding:12px 14px;min-height:48px;background:var(--acc);color:#fff;cursor:pointer}
 button.sec{background:transparent;color:var(--acc);border:2px solid var(--acc)}button.del{background:var(--red)}
 #big{width:100%;font-size:28px;font-weight:700;min-height:90px}#big.on{background:var(--red)}
 .live{display:flex;justify-content:space-around;text-align:center;margin:12px 0}.live b{font-size:40px;display:block}
-input,select,textarea{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);min-height:48px}
-label{display:block;margin:8px 0 4px;color:var(--mut);font-size:15px}.row{display:flex;gap:8px}.row>*{flex:1}
+input,select{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);min-height:48px}
+label{display:block;margin:8px 0 4px;color:var(--mut);font-size:15px}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
 .seg{display:flex;border:2px solid var(--acc);border-radius:12px;overflow:hidden}.seg button{flex:1;border-radius:0;background:transparent;color:var(--acc)}.seg button.act{background:var(--acc);color:#fff}
 table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:6px 4px;text-align:right;border-bottom:1px solid var(--bd)}td:first-child,th:first-child{text-align:left}
-.trip{border-bottom:1px solid var(--bd);padding:10px 0}.trip .t{display:flex;justify-content:space-between;font-weight:600}.mut{color:var(--mut);font-size:14px}
-.note{background:#f39c1222;border-left:4px solid #f39c12;padding:8px 10px;border-radius:8px;font-size:14px}footer{text-align:center;color:var(--mut);font-size:14px;margin:24px 0}
+.item{border-bottom:1px solid var(--bd);padding:10px 0}.item .t{display:flex;justify-content:space-between;font-weight:600;gap:8px}.mut{color:var(--mut);font-size:14px}
+.note{background:#f39c1222;border-left:4px solid #f39c12;padding:8px 10px;border-radius:8px;font-size:14px;margin:6px 0}
+.warn{background:#c0392b22;border-left:4px solid var(--red);padding:10px;border-radius:8px;font-weight:600;margin:6px 0}
+.miss{border:2px dashed #f39c12;border-radius:10px;padding:8px;margin:6px 0}
+footer{text-align:center;color:var(--mut);font-size:14px;margin:24px 0}
 dialog{border:0;border-radius:16px;background:var(--card);color:var(--fg);width:min(94vw,480px)}dialog::backdrop{background:#0008}
+#print{display:none}
+@media print{body{background:#fff;color:#000;padding:0;font-size:11pt}#app,dialog,footer{display:none!important}#print{display:block}
+ #print table{font-size:9pt;margin-bottom:14pt}#print td,#print th{border:1px solid #999;padding:3px;color:#000}#print h2{margin:12pt 0 4pt}.warn{border:2px solid #000}}
 </style></head><body>
-<h1>Mile Tracker</h1>
+<div id="app">
+<h1>Mile Tracker <span class="mut" id="veh"></span></h1>
 <div class="card">
  <button id="big">Start trip</button>
  <div class="live"><div><b id="lmi">0.00</b>miles</div><div><b id="ltime">0:00</b>elapsed</div></div>
  <div class="mut" id="gps">GPS idle</div>
  <div class="note">Keep the screen ON while driving. Browsers can't track GPS when the screen is locked or the app is in the background. <span id="wl"></span></div>
 </div>
-<div class="card"><h2>Totals</h2><div id="totals"></div>
- <label>IRS mileage rate ($ per mile, optional — enter current rate yourself)</label>
- <input id="rate" type="number" inputmode="decimal" step="0.001" min="0" placeholder="e.g. enter the current rate">
+<div class="card"><h2>Yearly business use</h2><div id="ywarn"></div><div id="ysum"></div>
+ <div class="row"><div><label>Planned business-use target %</label><input id="target" type="number" inputmode="decimal" min="0" max="100" step="1"></div>
+ <div><label>Mileage rate $/mi (optional, enter yourself)</label><input id="rate" type="number" inputmode="decimal" step="0.001" min="0" placeholder="blank"></div></div>
+ <p class="mut">Target is your plan (default 80%). Business use must stay above 50% each year. Deduction is an estimate only — not tax advice; confirm with your CPA.</p>
 </div>
+<div class="card"><h2>Totals</h2><div id="totals"></div></div>
+<div class="card"><h2>Odometer readings</h2><div id="odoRem"></div><div id="odoList"></div>
+ <div class="row"><div><label>Date</label><input id="odate" type="date"></div><div><label>Reading</label><input id="oread" type="number" inputmode="decimal" step="0.1" min="0"></div></div>
+ <label>Label</label><input id="olabel" placeholder="e.g. Jan 1 reading">
+ <p><button id="oadd" style="width:100%">Add reading</button></p></div>
 <div class="card"><h2>Add trip manually</h2>
- <div class="seg" id="mmode"><button data-m="miles" class="act">Miles</button><button data-m="odo">Odometer</button></div>
  <label>Date</label><input id="mdate" type="date">
- <div class="row"><div><label>Start time</label><input id="mstart" type="time"></div><div><label>End time</label><input id="mend" type="time"></div></div>
- <div id="mmiles"><label>Miles</label><input id="mmi" type="number" inputmode="decimal" step="0.1" min="0"></div>
- <div id="modo" hidden class="row"><div><label>Odometer start</label><input id="ostart" type="number" inputmode="decimal" step="0.1"></div><div><label>Odometer end</label><input id="oend" type="number" inputmode="decimal" step="0.1"></div></div>
+ <div class="row"><div><label>Start odometer</label><input id="mos" type="number" inputmode="decimal" step="0.1"></div><div><label>End odometer</label><input id="moe" type="number" inputmode="decimal" step="0.1"></div></div>
+ <label>Miles (auto from odometer if both entered)</label><input id="mmi" type="number" inputmode="decimal" step="0.1" min="0">
+ <label>Destination</label><input id="mdest">
+ <label>Business purpose</label><input id="mpur" placeholder="e.g. Client meeting – Acme">
  <label>Type</label><div class="seg" id="mtype"><button data-t="Business" class="act">Business</button><button data-t="Personal">Personal</button></div>
- <label>Note</label><input id="mnote" placeholder="Purpose, client, etc.">
- <p><button id="madd" style="width:100%">Add trip</button></p>
-</div>
+ <label>Note</label><input id="mnote">
+ <p><button id="madd" style="width:100%">Add trip</button></p></div>
 <div class="card"><h2>Trips</h2><div id="trips"></div></div>
-<div class="card"><h2>Backup</h2>
- <div class="row"><button id="exp">Export CSV</button><button class="sec" id="impb">Import CSV</button></div>
+<div class="card"><h2>Export / backup</h2>
+ <div class="row"><button id="exp">Trips CSV</button><button id="exp2">Odometer + yearly CSV</button></div>
+ <div class="row" style="margin-top:8px"><button class="sec" id="prt">Print / Save as PDF</button><button class="sec" id="impb">Import trips CSV</button></div>
  <input type="file" id="imp" accept=".csv,text/csv" hidden>
- <p class="mut">Export saves a file on this phone. Import merges trips from a CSV (duplicates skipped).</p>
+ <p class="mut">Exports save a file on this phone only. Import accepts both the new and the old CSV format (duplicates skipped). On iPhone, Print → pinch out on the preview → Share → Save to Files for a PDF.</p></div>
 </div>
-<dialog id="dlg"><form method="dialog" id="ef"><h2>Edit trip</h2>
+<div id="print"></div>
+<dialog id="dlg"><form method="dialog"><h2>Trip details</h2>
  <label>Date</label><input id="edate" type="date" required>
- <div class="row"><div><label>Start</label><input id="estart" type="time"></div><div><label>End</label><input id="eend" type="time"></div></div>
- <label>Miles</label><input id="emi" type="number" step="0.01" min="0" inputmode="decimal" required>
+ <div class="row"><div><label>Start odometer</label><input id="eos" type="number" step="0.1" inputmode="decimal"></div><div><label>End odometer</label><input id="eoe" type="number" step="0.1" inputmode="decimal"></div></div>
+ <label>Miles <span id="egps" class="mut"></span></label><input id="emi" type="number" step="0.01" min="0" inputmode="decimal">
+ <label>Destination</label><input id="edest"><label>Business purpose</label><input id="epur">
  <label>Type</label><select id="etype"><option>Business</option><option>Personal</option></select>
  <label>Note</label><input id="enote">
- <p class="row"><button value="cancel" class="sec" formnovalidate>Cancel</button><button value="save" id="esave">Save</button></p></form></dialog>
-<footer>🔒 Private: all data stays on this phone (stored locally in your browser). No accounts, no servers, no analytics, no maps — this app makes zero network requests. Nothing leaves your phone unless you tap Export.</footer>
+ <p class="row"><button value="cancel" class="sec" formnovalidate>Cancel</button><button value="save">Save</button></p></form></dialog>
+<dialog id="odlg"><form method="dialog"><h2>Edit odometer reading</h2>
+ <label>Date</label><input id="xdate" type="date"><label>Reading</label><input id="xread" type="number" step="0.1" inputmode="decimal"><label>Label</label><input id="xlabel">
+ <p class="row"><button value="cancel" class="sec">Cancel</button><button value="save">Save</button></p></form></dialog>
+<footer>🔒 Private: all data stays on this phone (stored locally in your browser). No accounts, no servers, no analytics, no maps, no GPS coordinates saved — this app makes zero network requests. Nothing leaves your phone unless you tap Export.</footer>
 <script>
 /*CORE-START*/
 const R_MI=3958.7613;
 function haversineMi(a,b){const r=x=>x*Math.PI/180;const dLat=r(b.lat-a.lat),dLon=r(b.lon-a.lon);
  const h=Math.sin(dLat/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLon/2)**2;return 2*R_MI*Math.asin(Math.min(1,Math.sqrt(h)));}
-// Filter: drop fixes with accuracy >50 m, implausible speed (>100 mph), and jitter (move smaller than max(15 m, combined accuracy of both fixes); anchor is kept so slow real movement still accumulates).
+// Filter: drop fixes with accuracy >50 m, implausible speed (>100 mph), and jitter (move smaller than max(15 m, combined accuracy of both fixes); anchor is kept so slow real movement still accumulates). Coordinates live only in memory during a trip.
 function makeTracker(o={}){const MAXACC=o.maxAcc??50,MAXMPH=o.maxMph??100,MINM=o.minMeters??15;
  let last=null,miles=0,points=0,rejected=0;
- return{add(p){ // p={lat,lon,acc(m),t(ms)}
-  if(p.acc==null||p.acc>MAXACC){rejected++;return false;}
+ return{add(p){if(p.acc==null||p.acc>MAXACC){rejected++;return false;}
   if(!last){last=p;points++;return true;}
   const d=haversineMi(last,p),m=d*1609.344,hrs=(p.t-last.t)/3600000;
-  if(m<Math.max(MINM,p.acc+last.acc)){return false;} // stationary jitter: keep anchor
+  if(m<Math.max(MINM,p.acc+last.acc))return false;
   if(hrs<=0||d/hrs>MAXMPH){rejected++;return false;}
   miles+=d;last=p;points++;return true;},
   get miles(){return miles},get points(){return points},get rejected(){return rejected}};}
+const num=v=>{const n=parseFloat(v);return isFinite(n)?n:null};
+function deriveMiles(os,oe,fallback){os=num(os);oe=num(oe);if(os!=null&&oe!=null&&oe>=os)return Math.round((oe-os)*10)/10;return num(fallback)??0;}
+function yearSummary(trips){const y={};for(const t of trips){const k=(t.date||'').slice(0,4);if(!/^\d{4}$/.test(k))continue;
+ const s=y[k]||(y[k]={business:0,personal:0});s[t.type==='Business'?'business':'personal']+=+t.miles||0;}
+ for(const k in y){const s=y[k];s.business=Math.round(s.business*100)/100;s.personal=Math.round(s.personal*100)/100;s.total=Math.round((s.business+s.personal)*100)/100;
+  s.pct=s.total>0?s.business/s.total*100:null;s.ok=s.pct!=null&&s.pct>50;}return y;}
+const fmtPct=p=>p==null?'—':p.toFixed(1)+'%';
 function csvEsc(v){v=String(v??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
-function toCSV(trips){return 'date,start,end,miles,type,note\r\n'+trips.map(t=>[t.date,t.start,t.end,(+t.miles).toFixed(2),t.type,t.note].map(csvEsc).join(',')).join('\r\n')+'\r\n';}
+const TRIP_COLS=['date','start odometer','end odometer','destination','business purpose','miles','type','note','start time','end time'];
+function toCSV(trips){return TRIP_COLS.join(',')+'\r\n'+trips.map(t=>[t.date,t.odoStart??'',t.odoEnd??'',t.dest,t.purpose,(+t.miles).toFixed(2),t.type,t.note,t.start,t.end].map(csvEsc).join(',')).join('\r\n')+'\r\n';}
 function parseCSV(s){const rows=[];let row=[],f='',q=false;for(let i=0;i<s.length;i++){const c=s[i];
  if(q){if(c=='"'){if(s[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
  else if(c=='"')q=true;else if(c==','){row.push(f);f=''}else if(c=='\n'||c=='\r'){if(c=='\r'&&s[i+1]=='\n')i++;row.push(f);f='';if(row.some(x=>x!==''))rows.push(row);row=[]}else f+=c}
  row.push(f);if(row.some(x=>x!==''))rows.push(row);return rows;}
-if(typeof module!=='undefined')module.exports={haversineMi,makeTracker,toCSV,parseCSV};
+// Accepts new format (header "start odometer") and old v1 format (date,start,end,miles,type,note).
+function rowsToTrips(rows){if(!rows.length)return[];const h=rows[0].map(x=>x.trim().toLowerCase());let body=rows,isNew=true;
+ if(h[0]==='date'){body=rows.slice(1);isNew=h.includes('start odometer');}else isNew=rows[0].length>=8;
+ return body.map(r=>{const ty=(r[isNew?6:4]||'').trim()==='Personal'?'Personal':'Business';
+  if(isNew)return{date:r[0],odoStart:num(r[1]),odoEnd:num(r[2]),dest:r[3]||'',purpose:r[4]||'',miles:deriveMiles(r[1],r[2],r[5]),type:ty,note:r[7]||'',start:r[8]||'',end:r[9]||''};
+  return{date:r[0],start:r[1]||'',end:r[2]||'',odoStart:null,odoEnd:null,dest:'',purpose:'',miles:num(r[3])??0,type:ty,note:r[5]||''};}).filter(t=>/^\d{4}-\d{2}-\d{2}$/.test(t.date));}
+function odoReminders(readings,year,inService){const need=[];if(inService.startsWith(String(year)))need.push({date:inService,label:'Placed in service'});
+ if(year>+inService.slice(0,4))need.push({date:year+'-01-01',label:'January 1'});if(year>=+inService.slice(0,4))need.push({date:year+'-12-31',label:'December 31'});
+ return need.filter(n=>!readings.some(r=>r.date===n.date));}
+if(typeof module!=='undefined')module.exports={haversineMi,makeTracker,toCSV,parseCSV,deriveMiles,yearSummary,rowsToTrips,odoReminders};
 /*CORE-END*/
 if(typeof document!=='undefined'){
-const $=id=>document.getElementById(id),K='miletracker.trips.v1',KR='miletracker.rate';
-let trips=JSON.parse(localStorage.getItem(K)||'[]');
-const save=()=>{localStorage.setItem(K,JSON.stringify(trips));render()};
+const VEHICLE='2026 Ford Mach-E',IN_SERVICE='2026-09-25';
+const $=id=>document.getElementById(id),K='miletracker.trips.v1',KO='miletracker.odo.v1',KR='miletracker.rate',KT='miletracker.target';
+let trips=JSON.parse(localStorage.getItem(K)||'[]'),odo=JSON.parse(localStorage.getItem(KO)||'[]');
+const save=()=>{localStorage.setItem(K,JSON.stringify(trips));localStorage.setItem(KO,JSON.stringify(odo));render()};
 const pad=n=>String(n).padStart(2,'0'),ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('veh').textContent='· '+VEHICLE+' (in service 9/25/2026)';
 $('rate').value=localStorage.getItem(KR)||'';$('rate').oninput=()=>{localStorage.setItem(KR,$('rate').value);render()};
+$('target').value=localStorage.getItem(KT)??'80';$('target').oninput=()=>{localStorage.setItem(KT,$('target').value);render()};
+function lastOdo(){let best=null;for(const t of trips)if(t.odoEnd!=null&&(best==null||t.odoEnd>best))best=t.odoEnd;for(const r of odo)if(best==null||r.reading>best)best=r.reading;return best;}
+function yearTable(){const ys=yearSummary(trips),rate=num($('rate').value),tg=num($('target').value);let w='',h='<table><tr><th>Year</th><th>Business</th><th>Personal</th><th>Total</th><th>Bus. %</th>'+(rate>0?'<th>Est. deduction</th>':'')+'</tr>';
+ const yrs=Object.keys(ys).sort();if(!yrs.length)yrs.push(String(new Date().getFullYear()));
+ for(const y of yrs){const s=ys[y]||{business:0,personal:0,total:0,pct:null,ok:false};
+  h+=`<tr><td>${y}</td><td>${s.business.toFixed(1)}</td><td>${s.personal.toFixed(1)}</td><td>${s.total.toFixed(1)}</td><td>${fmtPct(s.pct)}</td>${rate>0?'<td>$'+(s.business*rate).toFixed(2)+'</td>':''}</tr>`;
+  if(s.pct!=null&&s.pct<=50)w+=`<div class="warn">⚠ ${y}: business use is ${fmtPct(s.pct)} — must stay above 50%.</div>`;
+  else if(s.pct!=null&&tg!=null&&s.pct<tg)w+=`<div class="note">${y}: ${fmtPct(s.pct)} business use — below your ${tg}% target (still above 50%).</div>`;}
+ return{w,h:h+'</table>'};}
 function render(){const now=new Date(),td=ymd(now),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7));const wk=ymd(mon),mo=td.slice(0,7),yr=td.slice(0,4);
+ const yt=yearTable();$('ywarn').innerHTML=yt.w;$('ysum').innerHTML=yt.h;
  const P={Today:t=>t.date===td,'This week':t=>t.date>=wk&&t.date<=td,'This month':t=>t.date.startsWith(mo),'This year':t=>t.date.startsWith(yr)};
- const rate=parseFloat($('rate').value);let h='<table><tr><th></th><th>Business</th><th>Personal</th><th>Total</th>'+(rate>0?'<th>Est. deduction</th>':'')+'</tr>';
+ let h='<table><tr><th></th><th>Business</th><th>Personal</th><th>Total</th></tr>';
  for(const[k,f]of Object.entries(P)){const s=trips.filter(f);const b=s.filter(t=>t.type==='Business').reduce((a,t)=>a+ +t.miles,0),p=s.filter(t=>t.type!=='Business').reduce((a,t)=>a+ +t.miles,0);
-  h+=`<tr><td>${k}</td><td>${b.toFixed(1)}</td><td>${p.toFixed(1)}</td><td>${(b+p).toFixed(1)}</td>${rate>0?'<td>$'+(b*rate).toFixed(2)+'</td>':''}</tr>`}
- $('totals').innerHTML=h+'</table>'+(rate>0?'<p class="mut">Estimate only (business miles × your rate). Not tax advice.</p>':'');
- const list=[...trips].sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start));
+  h+=`<tr><td>${k}</td><td>${b.toFixed(1)}</td><td>${p.toFixed(1)}</td><td>${(b+p).toFixed(1)}</td></tr>`}
+ $('totals').innerHTML=h+'</table>';
+ // odometer
+ const rem=odoReminders(odo,now.getFullYear(),IN_SERVICE);$('odoRem').innerHTML='';
+ for(const r of rem){const d=document.createElement('div');d.className='miss';d.innerHTML=`<b>Missing:</b> ${r.label} reading (${r.date})${r.date>td?' — due then':''} <button class="sec" style="min-height:40px;padding:6px 10px">Fill in</button>`;
+  d.querySelector('button').onclick=()=>{$('odate').value=r.date;$('olabel').value=r.label;$('oread').focus()};$('odoRem').appendChild(d)}
+ $('odoList').innerHTML=odo.length?'':'<p class="mut">No readings yet.</p>';
+ for(const r of [...odo].sort((a,b)=>b.date.localeCompare(a.date))){const d=document.createElement('div');d.className='item';
+  d.innerHTML=`<div class="t"><span>${esc(r.date)} · ${esc(r.label)}</span><span>${(+r.reading).toFixed(1)}</span></div><div class="row" style="margin-top:6px"><button class="sec">Edit</button><button class="del">Delete</button></div>`;
+  const[eb,db]=d.querySelectorAll('button');eb.onclick=()=>editOdo(r);db.onclick=()=>{if(confirm('Delete this reading?')){odo=odo.filter(x=>x.id!==r.id);save()}};$('odoList').appendChild(d)}
+ // trips
+ const list=[...trips].sort((a,b)=>(b.date+(b.start||'')).localeCompare(a.date+(a.start||'')));
  $('trips').innerHTML=list.length?'':'<p class="mut">No trips yet.</p>';
- for(const t of list){const d=document.createElement('div');d.className='trip';
-  d.innerHTML=`<div class="t"><span></span><span>${(+t.miles).toFixed(2)} mi</span></div><div class="mut"></div><div class="row" style="margin-top:6px"><button class="sec">Edit</button><button class="del">Delete</button></div>`;
-  d.querySelector('.t span').textContent=t.date+'  '+(t.start||'')+(t.end?'–'+t.end:'');
-  d.querySelector('.mut').textContent=t.type+(t.note?' · '+t.note:'')+(t.points?' · '+t.points+' GPS pts':'');
+ for(const t of list){const d=document.createElement('div');d.className='item';
+  d.innerHTML=`<div class="t"><span>${esc(t.date)} ${esc(t.start||'')}${t.end?'–'+esc(t.end):''}</span><span>${(+t.miles).toFixed(2)} mi</span></div>
+  <div class="mut">${esc(t.type)}${t.dest?' · to '+esc(t.dest):''}${t.purpose?' · '+esc(t.purpose):''}${t.odoStart!=null||t.odoEnd!=null?' · odo '+esc(t.odoStart??'?')+'→'+esc(t.odoEnd??'?'):''}${t.note?' · '+esc(t.note):''}${t.points?' · '+t.points+' GPS pts':''}</div>
+  ${t.type==='Business'&&!t.purpose?'<div class="mut" style="color:#f39c12">Add a business purpose for your records</div>':''}
+  <div class="row" style="margin-top:6px"><button class="sec">Edit</button><button class="del">Delete</button></div>`;
   const[eb,db]=d.querySelectorAll('button');eb.onclick=()=>edit(t);db.onclick=()=>{if(confirm('Delete this trip?')){trips=trips.filter(x=>x.id!==t.id);save()}};$('trips').appendChild(d)}}
-function edit(t){$('edate').value=t.date;$('estart').value=t.start;$('eend').value=t.end;$('emi').value=(+t.miles).toFixed(2);$('etype').value=t.type;$('enote').value=t.note||'';
- $('dlg').onclose=()=>{if($('dlg').returnValue==='save'){Object.assign(t,{date:$('edate').value,start:$('estart').value,end:$('eend').value,miles:+$('emi').value||0,type:$('etype').value,note:$('enote').value});save()}};$('dlg').showModal()}
-function seg(id,attr){$(id).querySelectorAll('button').forEach(b=>b.onclick=e=>{e.preventDefault();$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('act',x===b));$(id).dataset.v=b.dataset[attr];$(id).onchange&&$(id).onchange()});$(id).dataset.v=$(id).querySelector('.act').dataset[attr]}
-seg('mmode','m');seg('mtype','t');$('mmode').onchange=()=>{const o=$('mmode').dataset.v==='odo';$('modo').hidden=!o;$('mmiles').hidden=o};
-$('mdate').value=ymd(new Date());
-$('madd').onclick=()=>{let mi;if($('mmode').dataset.v==='odo'){mi=parseFloat($('oend').value)-parseFloat($('ostart').value)}else mi=parseFloat($('mmi').value);
- if(!(mi>0)){alert('Enter a positive distance (odometer end must exceed start).');return}if(!$('mdate').value){alert('Pick a date');return}
- const n=$('mnote').value+($('mmode').dataset.v==='odo'?(($('mnote').value?' ':'')+`(odo ${$('ostart').value}→${$('oend').value})`):'');
- trips.push({id:uid(),date:$('mdate').value,start:$('mstart').value,end:$('mend').value,miles:Math.round(mi*100)/100,type:$('mtype').dataset.v,note:n});
- ['mmi','ostart','oend','mnote','mstart','mend'].forEach(i=>$(i).value='');save()};
+function edit(t,isNew){$('edate').value=t.date;$('eos').value=t.odoStart??'';$('eoe').value=t.odoEnd??'';$('emi').value=(+t.miles).toFixed(2);$('edest').value=t.dest||'';$('epur').value=t.purpose||'';$('etype').value=t.type;$('enote').value=t.note||'';
+ $('egps').textContent=t.gpsMiles!=null?`(GPS measured ${t.gpsMiles.toFixed(2)})`:'';
+ const upd=()=>{if(num($('eos').value)!=null&&num($('eoe').value)!=null)$('emi').value=deriveMiles($('eos').value,$('eoe').value)};$('eos').oninput=$('eoe').oninput=upd;
+ $('dlg').onclose=()=>{if($('dlg').returnValue==='save'){Object.assign(t,{date:$('edate').value,odoStart:num($('eos').value),odoEnd:num($('eoe').value),miles:deriveMiles($('eos').value,$('eoe').value,$('emi').value),dest:$('edest').value,purpose:$('epur').value,type:$('etype').value,note:$('enote').value});save()}};
+ $('dlg').returnValue='';$('dlg').showModal()}
+function editOdo(r){$('xdate').value=r.date;$('xread').value=r.reading;$('xlabel').value=r.label;$('odlg').returnValue='';
+ $('odlg').onclose=()=>{if($('odlg').returnValue==='save'&&num($('xread').value)!=null){Object.assign(r,{date:$('xdate').value,reading:num($('xread').value),label:$('xlabel').value});save()}};$('odlg').showModal()}
+$('oadd').onclick=()=>{const v=num($('oread').value);if(v==null||!$('odate').value){alert('Enter date and reading');return}
+ odo.push({id:uid(),date:$('odate').value,reading:v,label:$('olabel').value||'Reading'});['oread','olabel'].forEach(i=>$(i).value='');save()};
+$('odate').value=ymd(new Date());
+$('mtype').querySelectorAll('button').forEach(b=>b.onclick=e=>{e.preventDefault();$('mtype').querySelectorAll('button').forEach(x=>x.classList.toggle('act',x===b));$('mtype').dataset.v=b.dataset.t});$('mtype').dataset.v='Business';
+$('mos').oninput=$('moe').oninput=()=>{if(num($('mos').value)!=null&&num($('moe').value)!=null)$('mmi').value=deriveMiles($('mos').value,$('moe').value)};
+$('mdate').value=ymd(new Date());$('mos').placeholder=lastOdo()??'';
+$('madd').onclick=()=>{const os=num($('mos').value),oe=num($('moe').value);if(os!=null&&oe!=null&&oe<os){alert('End odometer must be ≥ start.');return}
+ const mi=deriveMiles(os,oe,$('mmi').value);if(!(mi>0)){alert('Enter miles or both odometer readings.');return}if(!$('mdate').value){alert('Pick a date');return}
+ trips.push({id:uid(),date:$('mdate').value,start:'',end:'',odoStart:os,odoEnd:oe,dest:$('mdest').value,purpose:$('mpur').value,miles:mi,type:$('mtype').dataset.v,note:$('mnote').value});
+ ['mmi','mos','moe','mdest','mpur','mnote'].forEach(i=>$(i).value='');save();$('mos').placeholder=lastOdo()??''};
 // Live tracking
-let watch=null,tr=null,t0=0,tick=null,lock=null;
-async function wake(){try{if('wakeLock' in navigator){lock=await navigator.wakeLock.request('screen');$('wl').textContent='Screen wake lock: ON.'}else $('wl').textContent='This browser cannot keep the screen awake automatically — set auto-lock to Never while driving.'}catch(e){$('wl').textContent='Wake lock unavailable — keep the screen on manually.'}}
+let watch=null,tr=null,t0=0,tick=null,lock=null,startOdo=null;
+async function wake(){try{if('wakeLock' in navigator){lock=await navigator.wakeLock.request('screen');$('wl').textContent='Screen wake lock: ON.'}else $('wl').textContent='This browser cannot keep the screen awake automatically — set Auto-Lock to Never while driving.'}catch(e){$('wl').textContent='Wake lock unavailable — keep the screen on manually.'}}
 document.addEventListener('visibilitychange',()=>{if(watch!==null&&document.visibilityState==='visible')wake()});
 $('big').onclick=()=>watch===null?start():stop();
 function start(){if(!('geolocation' in navigator)){alert('Geolocation not available');return}
+ const lo=lastOdo();const a=prompt('Starting odometer (optional — leave blank to skip):',lo??'');startOdo=a===null?null:num(a);
  tr=makeTracker();t0=Date.now();$('big').textContent='Stop trip';$('big').classList.add('on');wake();
- watch=navigator.geolocation.watchPosition(p=>{const ok=tr.add({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,t:p.timestamp||Date.now()});
+ watch=navigator.geolocation.watchPosition(p=>{tr.add({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,t:p.timestamp||Date.now()});
   $('gps').textContent=`GPS ±${Math.round(p.coords.accuracy)} m${p.coords.accuracy>50?' (too inaccurate, ignored)':''} · ${tr.points} pts used`;$('lmi').textContent=tr.miles.toFixed(2)},
-  e=>{$('gps').textContent='GPS error: '+e.message+(e.code===1?' — allow location for this page in settings.':'')},{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  e=>{$('gps').textContent='GPS error: '+e.message+(e.code===1?' — allow location for this site in Settings.':'')},{enableHighAccuracy:true,maximumAge:0,timeout:30000});
  tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$('ltime').textContent=(s>=3600?Math.floor(s/3600)+':'+pad(Math.floor(s/60)%60):Math.floor(s/60))+':'+pad(s%60)},1000)}
 function stop(){navigator.geolocation.clearWatch(watch);watch=null;clearInterval(tick);if(lock){lock.release().catch(()=>{});lock=null}$('wl').textContent='';
- $('big').textContent='Start trip';$('big').classList.remove('on');const s=new Date(t0),e=new Date();
- const t={id:uid(),date:ymd(s),start:hm(s),end:hm(e),miles:Math.round(tr.miles*100)/100,type:'Business',note:'',points:tr.points};
- trips.push(t);save();$('gps').textContent='Trip saved. Set type/note below.';edit(t)}
-// Export / import
-$('exp').onclick=()=>{const b=new Blob([toCSV(trips)],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mileage-'+ymd(new Date())+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)};
+ $('big').textContent='Start trip';$('big').classList.remove('on');const s=new Date(t0),e=new Date(),gm=Math.round(tr.miles*100)/100;
+ const sug=startOdo!=null?Math.round((startOdo+gm)*10)/10:'';const b=prompt(`Ending odometer (optional). GPS measured ${gm.toFixed(2)} mi.`,sug);const endOdo=b===null?null:num(b);
+ const t={id:uid(),date:ymd(s),start:hm(s),end:hm(e),odoStart:startOdo,odoEnd:endOdo,dest:'',purpose:'',miles:deriveMiles(startOdo,endOdo,gm),gpsMiles:gm,type:'Business',note:'',points:tr.points};
+ trips.push(t);save();$('gps').textContent='Trip saved. Add destination & purpose.';edit(t)}
+// Export / import / print
+function dl(name,text){const b=new Blob([text],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+const sorted=()=>[...trips].sort((a,b)=>(a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
+$('exp').onclick=()=>dl('mileage-trips-'+ymd(new Date())+'.csv',toCSV(sorted()));
+$('exp2').onclick=()=>{let s='Vehicle,'+csvEsc(VEHICLE)+'\r\nPlaced in service,'+IN_SERVICE+'\r\n\r\nODOMETER READINGS\r\ndate,reading,label\r\n';
+ for(const r of [...odo].sort((a,b)=>a.date.localeCompare(b.date)))s+=[r.date,(+r.reading).toFixed(1),r.label].map(csvEsc).join(',')+'\r\n';
+ s+='\r\nYEARLY SUMMARY\r\nyear,business miles,personal miles,total miles,business use %\r\n';const ys=yearSummary(trips);
+ for(const y of Object.keys(ys).sort()){const v=ys[y];s+=[y,v.business.toFixed(2),v.personal.toFixed(2),v.total.toFixed(2),v.pct==null?'':v.pct.toFixed(1)].join(',')+'\r\n'}
+ dl('mileage-odometer-summary-'+ymd(new Date())+'.csv',s)};
+$('prt').onclick=()=>{const yt=yearTable();let h=`<h1>Vehicle mileage log — ${esc(VEHICLE)}</h1><p>Placed in service: 09/25/2026 · Printed ${ymd(new Date())} · Planned business use: ${esc($('target').value)}%</p>${yt.w}<h2>Yearly summary</h2>${yt.h}<h2>Odometer readings</h2><table><tr><th>Date</th><th>Reading</th><th>Label</th></tr>`;
+ for(const r of [...odo].sort((a,b)=>a.date.localeCompare(b.date)))h+=`<tr><td>${esc(r.date)}</td><td>${(+r.reading).toFixed(1)}</td><td>${esc(r.label)}</td></tr>`;
+ h+='</table><h2>Trip log</h2><table><tr><th>Date</th><th>Start odo</th><th>End odo</th><th>Destination</th><th>Business purpose</th><th>Miles</th><th>Type</th><th>Note</th></tr>';
+ for(const t of sorted())h+=`<tr><td>${esc(t.date)}</td><td>${esc(t.odoStart??'')}</td><td>${esc(t.odoEnd??'')}</td><td>${esc(t.dest)}</td><td>${esc(t.purpose)}</td><td>${(+t.miles).toFixed(2)}</td><td>${esc(t.type)}</td><td>${esc(t.note)}</td></tr>`;
+ $('print').innerHTML=h+'</table><p>Estimates only — not tax advice.</p>';window.print()};
 $('impb').onclick=()=>$('imp').click();
-$('imp').onchange=async()=>{const f=$('imp').files[0];if(!f)return;const rows=parseCSV(await f.text());if(rows.length&&rows[0][0].toLowerCase()==='date')rows.shift();
- const key=t=>[t.date,t.start,t.end,(+t.miles).toFixed(2)].join('|'),have=new Set(trips.map(key));let n=0;
- for(const r of rows){const t={id:uid(),date:r[0],start:r[1]||'',end:r[2]||'',miles:parseFloat(r[3])||0,type:r[4]==='Personal'?'Personal':'Business',note:r[5]||''};
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(t.date)||have.has(key(t)))continue;have.add(key(t));trips.push(t);n++}
+$('imp').onchange=async()=>{const f=$('imp').files[0];if(!f)return;const inc=rowsToTrips(parseCSV(await f.text()));
+ const key=t=>[t.date,t.start||'',t.odoStart??'',(+t.miles).toFixed(2)].join('|'),have=new Set(trips.map(key));let n=0;
+ for(const t of inc){if(have.has(key(t)))continue;have.add(key(t));t.id=uid();trips.push(t);n++}
  save();alert(n+' trip(s) imported.');$('imp').value=''};
 render();
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});

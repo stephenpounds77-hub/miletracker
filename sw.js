@@ -1,5 +1,5 @@
 // Offline cache of this app's own files only. Never contacts any other server.
-const C='miles-v1',F=['./','./index.html','./manifest.webmanifest','./icon.svg'];
+const C='miles-v2-cpa',F=['./','./index.html','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==location.origin||e.request.method!=='GET')return;
